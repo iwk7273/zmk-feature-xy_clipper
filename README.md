@@ -1,11 +1,43 @@
-# ZMK Module Template
+# ZMK Feature: XY Clipper
 
-This repository contains a template for a ZMK module, as it would most frequently be used. 
+This is a ZMK input processor module to clip relative XY movement deltas from sensors like trackballs or optical sensors.
+
+## Overview
+
+The `xy_clipper` input processor compares relative X and Y movement values and clips (zeroes) the smaller one.  
+This helps enforce input strictly in the horizontal or vertical direction, making it especially useful for trackball-based scrolling.
+
+For example:
+- Stabilize vertical or horizontal scrolls
+- Prevent diagonal input when only one axis of movement is intended
 
 ## Usage
 
-Read through the [ZMK Module Creation](https://zmk.dev/docs/development/module-creation) page for details on how to configure this template.
+### Enable in your board config (`prj.conf`)
 
-## More Info
+```conf
+CONFIG_XY_CLIPPER=y
+```
 
-For more info on modules, you can read through  through the [Zephyr modules page](https://docs.zephyrproject.org/3.5.0/develop/modules.html) and [ZMK's page on using modules](https://zmk.dev/docs/features/modules). [Zephyr's west manifest page](https://docs.zephyrproject.org/3.5.0/develop/west/manifest.html#west-manifests) may also be of use.
+### Device tree overlay
+
+In your shield `.overlay` file, register the `xy_clipper` input processor:
+
+```dts
+/ {
+    trackball_listener {
+        compatible = "zmk,input-listener";
+        device = <&trackball>;
+        input-processors = <&xy_clipper>;
+    };
+};
+
+/ {
+    input_processors {
+        xy_clipper: xy_clipper {
+            compatible = "zmk,input-processor-xy-clipper";
+            #input-processor-cells = <0>;
+        };
+    };
+};
+```

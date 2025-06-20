@@ -1,0 +1,89 @@
+#define DT_DRV_COMPAT zmk_input_processor_xy_clipper
+
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include "drivers/input_processor.h"
+
+LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+
+struct xy_clipper_config {};
+
+struct xy_clipper_data {
+    int32_t x;
+    int32_t y;
+    bool has_x;
+    bool has_y;
+};
+
+static int xy_clipper_process(
+    const struct device *dev, struct input_event *event, uint32_t param1,
+    uint32_t param2, struct zmk_input_processor_state *state) {
+    struct xy_clipper_data *data = dev->data;
+
+    switch (event->type) {
+    case INPUT_EV_REL:
+        if (event->code == INPUT_REL_X) {
+            data->x = event->value;
+            data->has_x = true;
+        } else if (event->code == INPUT_REL_Y) {
+            data->y = event->value;
+            data->has_y = true;
+        } else {
+            return ZMK_INPUT_PROC_CONTINUE;
+        }
+
+        if (data->has_x && data->has_y) {
+            int32_t x = data->x;
+            int32_t y = data->y;
+
+            if (abs(x) < abs(y)) {
+                x = 0;
+            } else {
+                y = 0;
+            }
+
+            ZMK_INPUT_PROCESS_EVENT((struct input_event){
+                .timestamp = event->timestamp,
+                .type = INPUT_EV_REL,
+                .code = INPUT_REL_X,
+                .value = x,
+            });
+
+            ZMK_INPUT_PROCESS_EVENT((struct input_event){
+                .timestamp = event->timestamp,
+                .type = INPUT_EV_REL,
+                .code = INPUT_REL_Y,
+                .value = y,
+            });
+
+            data->has_x = false;
+            data->has_y = false;
+
+            return ZMK_INPUT_PROC_STOP;
+        }
+        break;
+    default:
+        return ZMK_INPUT_PROC_CONTINUE;
+    }
+
+    return ZMK_INPUT_PROC_STOP;
+}
+
+static int xy_clipper_init(const struct device *dev) {
+    struct xy_clipper_data *data = dev->data;
+    data->x = 0;
+    data->y = 0;
+    data->has_x = false;
+    data->has_y = false;
+    return 0;
+}
+
+static const struct xy_clipper_config xy_clipper_cfg = {};
+static struct xy_clipper_data xy_clipper_data_inst;
+
+DEVICE_DT_INST_DEFINE(0, xy_clipper_init, NULL, &xy_clipper_data_inst, &xy_clipper_cfg,
+                      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
+                      &((struct input_processor_driver_api){
+                          .process = xy_clipper_process,
+                      }));

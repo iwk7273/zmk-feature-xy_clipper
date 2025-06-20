@@ -1,0 +1,16 @@
+menuconfig XY_CLIPPER
+    bool "Enable XY Clipper Module"
+    default n
+    help
+        Enable the XY Clipper module for ZMK.
+
+if XY_CLIPPER
+
+config ZMK_INPUT_PROCESSOR_XY_CLIPPER
+    bool "Enable XY Clipper Input Processor"
+    default y
+    depends on ZMK_INPUT_PROCESSORS
+    help
+      Enable an input processor that zeroes the smaller of X or Y input values.
+
+endif # XY_CLIPPER

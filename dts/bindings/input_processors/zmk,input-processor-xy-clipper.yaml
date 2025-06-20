@@ -1,0 +1,6 @@
+
+description: ZMK input processor that zeroes the smaller of X or Y motion
+
+compatible: "zmk,input-processor-xy-clipper"
+
+include: ip_zero_param.yaml
