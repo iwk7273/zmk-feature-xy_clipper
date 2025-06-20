@@ -1,5 +1,6 @@
 #define DT_DRV_COMPAT zmk_input_processor_xy_clipper
 
+#include "drivers/input_processor.h"
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
