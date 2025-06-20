@@ -38,36 +38,25 @@ static int xy_clipper_process(
             int32_t y = data->y;
 
             if (abs(x) < abs(y)) {
-                x = 0;
+                data->x = 0;
             } else {
-                y = 0;
+                data->y = 0;
             }
-
-            ZMK_INPUT_PROCESS_EVENT((struct input_event){
-                .timestamp = event->timestamp,
-                .type = INPUT_EV_REL,
-                .code = INPUT_REL_X,
-                .value = x,
-            });
-
-            ZMK_INPUT_PROCESS_EVENT((struct input_event){
-                .timestamp = event->timestamp,
-                .type = INPUT_EV_REL,
-                .code = INPUT_REL_Y,
-                .value = y,
-            });
 
             data->has_x = false;
             data->has_y = false;
-
-            return ZMK_INPUT_PROC_STOP;
         }
-        break;
+
+        if (event->code == INPUT_REL_X) {
+            event->value = data->x;
+        } else if (event->code == INPUT_REL_Y) {
+            event->value = data->y;
+        }
+
+        return ZMK_INPUT_PROC_CONTINUE;
     default:
         return ZMK_INPUT_PROC_CONTINUE;
     }
-
-    return ZMK_INPUT_PROC_STOP;
 }
 
 static int xy_clipper_init(const struct device *dev) {
