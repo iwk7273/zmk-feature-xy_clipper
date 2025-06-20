@@ -26,9 +26,11 @@ static int xy_clipper_handle_event(
     switch (event->type) {
     case INPUT_EV_REL:
         if (event->code == INPUT_REL_X) {
+            LOG_DBG("Before clip: code=X, value=%d", event->value);
             data->x = event->value;
             data->has_x = true;
         } else if (event->code == INPUT_REL_Y) {
+            LOG_DBG("Before clip: code=Y, value=%d", event->value);
             data->y = event->value;
             data->has_y = true;
         } else {
@@ -47,8 +49,10 @@ static int xy_clipper_handle_event(
 
         if (event->code == INPUT_REL_X) {
             event->value = data->x;
+            LOG_DBG("After clip: code=X, value=%d", event->value);
         } else if (event->code == INPUT_REL_Y) {
             event->value = data->y;
+            LOG_DBG("After clip: code=Y, value=%d", event->value);
         }
 
         return ZMK_INPUT_PROC_CONTINUE;
