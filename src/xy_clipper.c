@@ -3,9 +3,9 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include "drivers/input_processor.h"
 #include <zephyr/dt-bindings/input/input-event-codes.h>
-#include <stdlib.h> // abs()
+#include <zmk/input/input_processor.h>
+#include <stdlib.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
