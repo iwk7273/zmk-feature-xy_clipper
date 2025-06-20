@@ -4,7 +4,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
-#include <zmk/input/input_processor.h>
 #include <stdlib.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -18,7 +17,7 @@ struct xy_clipper_data {
     bool has_y;
 };
 
-static int xy_clipper_process(
+static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
     struct xy_clipper_data *data = dev->data;
@@ -58,12 +57,21 @@ static int xy_clipper_process(
     }
 }
 
-static const struct xy_clipper_config xy_clipper_cfg = {};
-static struct xy_clipper_data xy_clipper_data_inst = {
-    .x = 0,
-    .y = 0,
-    .has_x = false,
-    .has_y = false,
+static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
+    .handle_event = xy_clipper_handle_event,
 };
 
-ZMK_INPUT_PROCESSOR_DEFINE(xy_clipper, xy_clipper_process);
+#define XY_CLIPPER_INST(n) \
+  static struct xy_clipper_data xy_clipper_data_##n = { \
+      .x = 0, \
+      .y = 0, \
+      .has_x = false, \
+      .has_y = false, \
+  }; \
+  static const struct xy_clipper_config xy_clipper_config_##n = {}; \
+  DEVICE_DT_INST_DEFINE(n, NULL, NULL, \
+                        &xy_clipper_data_##n, &xy_clipper_config_##n, \
+                        POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, \
+                        &xy_clipper_driver_api);
+
+DT_INST_FOREACH_STATUS_OKAY(XY_CLIPPER_INST)
