@@ -58,20 +58,12 @@ static int xy_clipper_process(
     }
 }
 
-static int xy_clipper_init(const struct device *dev) {
-    struct xy_clipper_data *data = dev->data;
-    data->x = 0;
-    data->y = 0;
-    data->has_x = false;
-    data->has_y = false;
-    return 0;
-}
-
 static const struct xy_clipper_config xy_clipper_cfg = {};
-static struct xy_clipper_data xy_clipper_data_inst;
+static struct xy_clipper_data xy_clipper_data_inst = {
+    .x = 0,
+    .y = 0,
+    .has_x = false,
+    .has_y = false,
+};
 
-DEVICE_DT_INST_DEFINE(0, xy_clipper_init, NULL, &xy_clipper_data_inst, &xy_clipper_cfg,
-                      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
-                      &((struct input_processor_driver_api){
-                          .process = xy_clipper_process,
-                      }));
+ZMK_INPUT_PROCESSOR_DEFINE(xy_clipper, xy_clipper_process);
