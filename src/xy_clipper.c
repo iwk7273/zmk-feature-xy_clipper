@@ -4,6 +4,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include "drivers/input_processor.h"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <stdlib.h> // abs()
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -34,15 +36,11 @@ static int xy_clipper_process(
         }
 
         if (data->has_x && data->has_y) {
-            int32_t x = data->x;
-            int32_t y = data->y;
-
-            if (abs(x) < abs(y)) {
+            if (abs(data->x) < abs(data->y)) {
                 data->x = 0;
             } else {
                 data->y = 0;
             }
-
             data->has_x = false;
             data->has_y = false;
         }
@@ -54,6 +52,7 @@ static int xy_clipper_process(
         }
 
         return ZMK_INPUT_PROC_CONTINUE;
+
     default:
         return ZMK_INPUT_PROC_CONTINUE;
     }
