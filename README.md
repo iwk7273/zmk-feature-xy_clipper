@@ -37,6 +37,9 @@ In your shield `.overlay` file, register the `xy_clipper` input processor:
         xy_clipper: xy_clipper {
             compatible = "zmk,input-processor-xy-clipper";
             #input-processor-cells = <0>;
+            threshold = <20>;
+            invert-x = <0>;  // Use 1 to enable X inversion
+            invert-y = <0>;  // Use 1 to enable Y inversion
         };
     };
 };
