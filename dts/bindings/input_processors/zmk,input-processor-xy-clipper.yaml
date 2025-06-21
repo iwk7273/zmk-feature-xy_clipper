@@ -3,4 +3,10 @@ description: ZMK input processor that zeroes the smaller of X or Y motion
 
 compatible: "zmk,input-processor-xy-clipper"
 
-include: ip_zero_param.yaml
+
+properties:
+  "#input-cells":
+    type: int
+    const: 3
+    description: >
+      3 arguments: threshold (int), invert-x (bool: 0 or 1), invert-y (bool: 0 or 1)
