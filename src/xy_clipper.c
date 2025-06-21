@@ -13,8 +13,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 struct xy_clipper_data {
     int32_t x;
     int32_t y;
-    bool has_x;
-    bool has_y;
 };
 
 struct xy_clipper_config {
@@ -39,38 +37,32 @@ static int xy_clipper_handle_event(
                 return ZMK_INPUT_PROC_STOP;
             }
             data->x += event->value;
-            data->has_x = true;
+            event->value = 0;
         } else if (event->code == INPUT_REL_Y) {
             if (event->value == 0) {
                 return ZMK_INPUT_PROC_STOP;
             }
             data->y += event->value;
-            data->has_y = true;
+            event->value = 0;
         } else {
             return ZMK_INPUT_PROC_CONTINUE;
         }
 
-        int32_t out_x = 0, out_y = 0;
-
         if (abs(data->x) >= threshold && data->x != 0) {
-            out_x = invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
+            event->code = INPUT_REL_X;
+            event->value = invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
             data->x = 0;
             data->y = 0;
+            return ZMK_INPUT_PROC_CONTINUE;
         } else if (abs(data->y) >= threshold && data->y != 0) {
-            out_y = invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
+            event->code = INPUT_REL_Y;
+            event->value = invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
             data->x = 0;
             data->y = 0;
+            return ZMK_INPUT_PROC_CONTINUE;
         } else {
             return ZMK_INPUT_PROC_STOP;
         }
-
-        if (event->code == INPUT_REL_X) {
-            event->value = out_x;
-        } else if (event->code == INPUT_REL_Y) {
-            event->value = out_y;
-        }
-
-        return ZMK_INPUT_PROC_CONTINUE;
 
     default:
         return ZMK_INPUT_PROC_CONTINUE;
@@ -85,8 +77,6 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
   static struct xy_clipper_data xy_clipper_data_##n = { \
       .x = 0, \
       .y = 0, \
-      .has_x = false, \
-      .has_y = false, \
   }; \
   static const struct xy_clipper_config xy_clipper_config_##n = { \
       .threshold = DT_INST_PROP(n, threshold), \
