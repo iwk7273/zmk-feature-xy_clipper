@@ -17,8 +17,8 @@ struct xy_clipper_data {
 
 struct xy_clipper_config {
     int32_t threshold;
-    bool invert_x;
-    bool invert_y;
+    int invert_x;
+    int invert_y;
 };
 
 static int xy_clipper_handle_event(
@@ -27,8 +27,8 @@ static int xy_clipper_handle_event(
     struct xy_clipper_data *data = dev->data;
     const struct xy_clipper_config *config = dev->config;
     int32_t threshold = config->threshold;
-    bool invert_x = config->invert_x;
-    bool invert_y = config->invert_y;
+    bool invert_x = config->invert_x != 0;
+    bool invert_y = config->invert_y != 0;
 
     switch (event->type) {
     case INPUT_EV_REL:
