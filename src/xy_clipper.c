@@ -17,13 +17,20 @@ struct xy_clipper_data {
     bool has_y;
 };
 
+struct xy_clipper_config {
+    int32_t threshold;
+    bool invert_x;
+    bool invert_y;
+};
+
 static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
     struct xy_clipper_data *data = dev->data;
-    int32_t threshold = param1;
-    bool invert_x = param2 & 0x01;
-    bool invert_y = (param2 >> 1) & 0x01;
+    const struct xy_clipper_config *config = dev->config;
+    int32_t threshold = config->threshold;
+    bool invert_x = config->invert_x;
+    bool invert_y = config->invert_y;
 
     switch (event->type) {
     case INPUT_EV_REL:
@@ -81,8 +88,13 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
       .has_x = false, \
       .has_y = false, \
   }; \
+  static const struct xy_clipper_config xy_clipper_config_##n = { \
+      .threshold = DT_INST_PROP(n, threshold), \
+      .invert_x = DT_INST_PROP(n, invert_x), \
+      .invert_y = DT_INST_PROP(n, invert_y), \
+  }; \
   DEVICE_DT_INST_DEFINE(n, NULL, NULL, \
-                        &xy_clipper_data_##n, NULL, \
+                        &xy_clipper_data_##n, &xy_clipper_config_##n, \
                         POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, \
                         &xy_clipper_driver_api);
 

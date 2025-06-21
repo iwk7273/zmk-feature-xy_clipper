@@ -2,7 +2,7 @@
     input_processors {
         xy_clipper: xy_clipper {
             compatible = "zmk,input-processor-xy-clipper";
-            #input-processor-cells = <3>;
+            #input-processor-cells = <0>;
         };
     };
 };
