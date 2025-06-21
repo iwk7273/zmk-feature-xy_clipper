@@ -10,12 +10,6 @@
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 /* Note: 'threshold' must be defined in the device tree for each instance of xy_clipper */
-struct xy_clipper_config {
-    int32_t threshold;
-    bool invert_x;
-    bool invert_y;
-};
-
 struct xy_clipper_data {
     int32_t x;
     int32_t y;
@@ -27,7 +21,9 @@ static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
     struct xy_clipper_data *data = dev->data;
-    const struct xy_clipper_config *config = dev->config;
+    int32_t threshold = param1;
+    bool invert_x = param2 & 0x01;
+    bool invert_y = (param2 >> 1) & 0x01;
 
     switch (event->type) {
     case INPUT_EV_REL:
@@ -49,12 +45,12 @@ static int xy_clipper_handle_event(
 
         int32_t out_x = 0, out_y = 0;
 
-        if (abs(data->x) >= config->threshold && data->x != 0) {
-            out_x = config->invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
+        if (abs(data->x) >= threshold && data->x != 0) {
+            out_x = invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
             data->x = 0;
             data->y = 0;
-        } else if (abs(data->y) >= config->threshold && data->y != 0) {
-            out_y = config->invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
+        } else if (abs(data->y) >= threshold && data->y != 0) {
+            out_y = invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
             data->x = 0;
             data->y = 0;
         } else {
@@ -85,13 +81,8 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
       .has_x = false, \
       .has_y = false, \
   }; \
-  static const struct xy_clipper_config xy_clipper_config_##n = { \
-      .threshold = DT_INST_PROP(n, threshold), \
-      .invert_x = DT_INST_PROP_OR(n, invert_x, false), \
-      .invert_y = DT_INST_PROP_OR(n, invert_y, false), \
-  }; \
   DEVICE_DT_INST_DEFINE(n, NULL, NULL, \
-                        &xy_clipper_data_##n, &xy_clipper_config_##n, \
+                        &xy_clipper_data_##n, NULL, \
                         POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, \
                         &xy_clipper_driver_api);
 
