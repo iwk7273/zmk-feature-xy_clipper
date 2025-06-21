@@ -5,7 +5,7 @@ compatible: "zmk,input-processor-xy-clipper"
 
 
 properties:
-  "#input-cells":
+  "#input-processor-cells":
     type: int
     const: 3
     description: >
