@@ -9,7 +9,12 @@
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-struct xy_clipper_config {};
+/* Note: 'threshold' must be defined in the device tree for each instance of xy_clipper */
+struct xy_clipper_config {
+    int32_t threshold;
+    bool invert_x;
+    bool invert_y;
+};
 
 struct xy_clipper_data {
     int32_t x;
@@ -22,37 +27,44 @@ static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
     struct xy_clipper_data *data = dev->data;
+    const struct xy_clipper_config *config = dev->config;
 
     switch (event->type) {
     case INPUT_EV_REL:
         if (event->code == INPUT_REL_X) {
-            LOG_INF("Before clip: code=X, value=%d", event->value);
-            data->x = event->value;
+            if (event->value == 0) {
+                return ZMK_INPUT_PROC_STOP;
+            }
+            data->x += event->value;
             data->has_x = true;
         } else if (event->code == INPUT_REL_Y) {
-            LOG_INF("Before clip: code=Y, value=%d", event->value);
-            data->y = event->value;
+            if (event->value == 0) {
+                return ZMK_INPUT_PROC_STOP;
+            }
+            data->y += event->value;
             data->has_y = true;
         } else {
             return ZMK_INPUT_PROC_CONTINUE;
         }
 
-        if (data->has_x && data->has_y) {
-            if (abs(data->x) < abs(data->y)) {
-                data->x = 0;
-            } else {
-                data->y = 0;
-            }
-            data->has_x = false;
-            data->has_y = false;
+        int32_t out_x = 0, out_y = 0;
+
+        if (abs(data->x) >= config->threshold && data->x != 0) {
+            out_x = config->invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
+            data->x = 0;
+            data->y = 0;
+        } else if (abs(data->y) >= config->threshold && data->y != 0) {
+            out_y = config->invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
+            data->x = 0;
+            data->y = 0;
+        } else {
+            return ZMK_INPUT_PROC_STOP;
         }
 
         if (event->code == INPUT_REL_X) {
-            event->value = data->x;
-            LOG_INF("After clip: code=X, value=%d", event->value);
+            event->value = out_x;
         } else if (event->code == INPUT_REL_Y) {
-            event->value = data->y;
-            LOG_INF("After clip: code=Y, value=%d", event->value);
+            event->value = out_y;
         }
 
         return ZMK_INPUT_PROC_CONTINUE;
@@ -73,7 +85,11 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
       .has_x = false, \
       .has_y = false, \
   }; \
-  static const struct xy_clipper_config xy_clipper_config_##n = {}; \
+  static const struct xy_clipper_config xy_clipper_config_##n = { \
+      .threshold = DT_INST_PROP(n, threshold), \
+      .invert_x = DT_INST_PROP_OR(n, invert_x, false), \
+      .invert_y = DT_INST_PROP_OR(n, invert_y, false), \
+  }; \
   DEVICE_DT_INST_DEFINE(n, NULL, NULL, \
                         &xy_clipper_data_##n, &xy_clipper_config_##n, \
                         POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, \
