@@ -21,6 +21,7 @@ struct xy_clipper_config {
     int invert_y;
 };
 
+
 static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
@@ -48,21 +49,30 @@ static int xy_clipper_handle_event(
             return ZMK_INPUT_PROC_CONTINUE;
         }
 
-        if (abs(data->x) >= threshold && data->x != 0) {
+
+        // Determine which axis, if any, has crossed the threshold and is dominant.
+        bool x_triggered = abs(data->x) >= threshold;
+        bool y_triggered = abs(data->y) >= threshold;
+
+        if (x_triggered && (!y_triggered || abs(data->x) >= abs(data->y))) {
+            // X is dominant or the only one triggered.
             event->code = INPUT_REL_X;
-            event->value = invert_x ? -((data->x > 0) ? 1 : -1) : ((data->x > 0) ? 1 : -1);
-            data->x = 0;
-            data->y = 0;
+            int32_t val = data->x / threshold;
+            event->value = invert_x ? -val : val;
+            data->x %= threshold;
+            data->y = 0; // Reset the non-dominant axis accumulator.
             return ZMK_INPUT_PROC_CONTINUE;
-        } else if (abs(data->y) >= threshold && data->y != 0) {
+        } else if (y_triggered) {
+            // Y is dominant or the only one triggered.
             event->code = INPUT_REL_Y;
-            event->value = invert_y ? -((data->y > 0) ? 1 : -1) : ((data->y > 0) ? 1 : -1);
-            data->x = 0;
-            data->y = 0;
+            int32_t val = data->y / threshold;
+            event->value = invert_y ? -val : val;
+            data->y %= threshold;
+            data->x = 0; // Reset the non-dominant axis accumulator.
             return ZMK_INPUT_PROC_CONTINUE;
-        } else {
-            return ZMK_INPUT_PROC_STOP;
         }
+        // If neither accumulator is over threshold, stop processing.
+        return ZMK_INPUT_PROC_STOP;
 
     default:
         return ZMK_INPUT_PROC_CONTINUE;
@@ -72,6 +82,7 @@ static int xy_clipper_handle_event(
 static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
     .handle_event = xy_clipper_handle_event,
 };
+
 
 #define XY_CLIPPER_INST(n) \
   static struct xy_clipper_data xy_clipper_data_##n = { \
