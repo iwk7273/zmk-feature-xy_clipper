@@ -34,15 +34,9 @@ static int xy_clipper_handle_event(
     switch (event->type) {
     case INPUT_EV_REL:
         if (event->code == INPUT_REL_X) {
-            if (event->value == 0) {
-                return ZMK_INPUT_PROC_STOP;
-            }
             data->x += event->value;
             event->value = 0;
         } else if (event->code == INPUT_REL_Y) {
-            if (event->value == 0) {
-                return ZMK_INPUT_PROC_STOP;
-            }
             data->y += event->value;
             event->value = 0;
         } else {
@@ -71,8 +65,11 @@ static int xy_clipper_handle_event(
             data->x = 0; // Reset the non-dominant axis accumulator.
             return ZMK_INPUT_PROC_CONTINUE;
         }
-        // If neither accumulator is over threshold, stop processing.
-        return ZMK_INPUT_PROC_STOP;
+        // If neither accumulator is over the threshold, invalidate the event
+        // and stop processing. This prevents it from being handled by other
+        // processors or included in the HID report.
+        event->code = 0xFFFF; // Use an invalid code.
+        return ZMK_INPUT_PROC_STOP; // event->value has already been set to 0.
 
     default:
         return ZMK_INPUT_PROC_CONTINUE;
