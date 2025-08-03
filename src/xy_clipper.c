@@ -44,7 +44,6 @@ static int xy_clipper_handle_event(
             return ZMK_INPUT_PROC_CONTINUE;
         }
 
-
         // Determine which axis, if any, has crossed the threshold and is dominant.
         bool x_triggered = abs(data->x) >= threshold;
         bool y_triggered = abs(data->y) >= threshold;
@@ -67,10 +66,6 @@ static int xy_clipper_handle_event(
             data->x = 0; // Reset the non-dominant axis accumulator.
             return ZMK_INPUT_PROC_CONTINUE;
         }
-        // If neither accumulator is over the threshold, invalidate the event
-        // and stop processing. This prevents it from being handled by other
-        // processors or included in the HID report.
-        event->code = 0xFFFF; // Use an invalid code.
         return ZMK_INPUT_PROC_STOP; // event->value has already been set to 0.
 
     default:
