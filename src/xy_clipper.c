@@ -13,6 +13,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 struct xy_clipper_data {
     int32_t x;
     int32_t y;
+    bool triggered_since_last_sync;
 };
 
 struct xy_clipper_config {
@@ -55,6 +56,7 @@ static int xy_clipper_handle_event(
             event->value = invert_x ? -val : val;
             data->x %= threshold;
             data->y = 0; // Reset the non-dominant axis accumulator.
+            data->triggered_since_last_sync = true;
             return ZMK_INPUT_PROC_CONTINUE;
         } else if (y_triggered) {
             // Y is dominant or the only one triggered.
@@ -63,6 +65,7 @@ static int xy_clipper_handle_event(
             event->value = invert_y ? -val : val;
             data->y %= threshold;
             data->x = 0; // Reset the non-dominant axis accumulator.
+            data->triggered_since_last_sync = true;
             return ZMK_INPUT_PROC_CONTINUE;
         }
         // If neither accumulator is over the threshold, invalidate the event
@@ -70,6 +73,16 @@ static int xy_clipper_handle_event(
         // processors or included in the HID report.
         event->code = 0xFFFF; // Use an invalid code.
         return ZMK_INPUT_PROC_STOP; // event->value has already been set to 0.
+
+    case INPUT_EV_SYN:
+        if (event->code == INPUT_SYN_REPORT) {
+            if (data->triggered_since_last_sync) {
+                data->triggered_since_last_sync = false;
+                return ZMK_INPUT_PROC_CONTINUE;
+            }
+            return ZMK_INPUT_PROC_STOP;
+        }
+        return ZMK_INPUT_PROC_CONTINUE;
 
     default:
         return ZMK_INPUT_PROC_CONTINUE;
@@ -85,6 +98,7 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
   static struct xy_clipper_data xy_clipper_data_##n = { \
       .x = 0, \
       .y = 0, \
+      .triggered_since_last_sync = false, \
   }; \
   static const struct xy_clipper_config xy_clipper_config_##n = { \
       .threshold = DT_INST_PROP(n, threshold), \
