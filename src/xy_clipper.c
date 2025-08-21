@@ -48,22 +48,22 @@ static int xy_clipper_handle_event(
         bool x_triggered = abs(data->x) >= threshold;
         bool y_triggered = abs(data->y) >= threshold;
 
-
-        if (x_triggered && (!y_triggered || abs(data->x) >= abs(data->y))) {
-            // X is dominant or the only one triggered.
-            event->code = INPUT_REL_X;
-            int32_t val = data->x / threshold;
-            event->value = invert_x ? -val : val;
-            data->x %= threshold;
-            data->y = 0; // Reset the non-dominant axis accumulator.
-            return ZMK_INPUT_PROC_CONTINUE;
-        } else if (y_triggered) {
+        // Prioritize Y-axis and emphasize its value by 2x in the dominance comparison.
+        if (y_triggered && (!x_triggered || (abs(data->y) * 2) >= abs(data->x))) {
             // Y is dominant or the only one triggered.
             event->code = INPUT_REL_Y;
             int32_t val = data->y / threshold;
             event->value = invert_y ? -val : val;
             data->y %= threshold;
             data->x = 0; // Reset the non-dominant axis accumulator.
+            return ZMK_INPUT_PROC_CONTINUE;
+        } else if (x_triggered) {
+            // X is dominant or the only one triggered.
+            event->code = INPUT_REL_X;
+            int32_t val = data->x / threshold;
+            event->value = invert_x ? -val : val;
+            data->x %= threshold;
+            data->y = 0; // Reset the non-dominant axis accumulator.
             return ZMK_INPUT_PROC_CONTINUE;
         }
         return ZMK_INPUT_PROC_STOP; // event->value has already been set to 0.
