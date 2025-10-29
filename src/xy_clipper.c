@@ -14,6 +14,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 struct xy_clipper_data {
     int32_t x;
     int32_t y;
+    int32_t effective_threshold;
 };
 
 struct xy_clipper_config {
@@ -23,12 +24,30 @@ struct xy_clipper_config {
 };
 
 
+static int32_t xy_clipper_get_threshold(const struct device *dev, struct xy_clipper_data *data,
+                                        const struct xy_clipper_config *config) {
+    if (data->effective_threshold > 0) {
+        return data->effective_threshold;
+    }
+
+    int32_t threshold = config->threshold;
+
+    if (threshold <= 0) {
+        LOG_WRN("%s: invalid threshold %d, clamping to 1", dev->name, threshold);
+        threshold = 1;
+    }
+
+    data->effective_threshold = threshold;
+    return data->effective_threshold;
+}
+
+
 static int xy_clipper_handle_event(
     const struct device *dev, struct input_event *event, uint32_t param1,
     uint32_t param2, struct zmk_input_processor_state *state) {
     struct xy_clipper_data *data = dev->data;
     const struct xy_clipper_config *config = dev->config;
-    int32_t threshold = config->threshold;
+    int32_t threshold = xy_clipper_get_threshold(dev, data, config);
     bool invert_x = config->invert_x != 0;
     bool invert_y = config->invert_y != 0;
 
@@ -82,6 +101,7 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
   static struct xy_clipper_data xy_clipper_data_##n = { \
       .x = 0, \
       .y = 0, \
+      .effective_threshold = 0, \
   }; \
   static const struct xy_clipper_config xy_clipper_config_##n = { \
       .threshold = DT_INST_PROP(n, threshold), \
