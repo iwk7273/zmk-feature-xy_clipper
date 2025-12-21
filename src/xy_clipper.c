@@ -6,6 +6,10 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <stdlib.h>
+#include <limits.h>
+#ifdef CONFIG_ZMK_CUSTOM_CONFIG
+#include <zmk/custom_feature.h>
+#endif
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -15,6 +19,9 @@ struct xy_clipper_data {
     int32_t x;
     int32_t y;
     int32_t effective_threshold;
+    int32_t last_threshold;
+    int8_t last_invert_x;
+    int8_t last_invert_y;
 };
 
 struct xy_clipper_config {
@@ -26,11 +33,15 @@ struct xy_clipper_config {
 
 static int32_t xy_clipper_get_threshold(const struct device *dev, struct xy_clipper_data *data,
                                         const struct xy_clipper_config *config) {
+    int32_t threshold = config->threshold;
+#ifdef CONFIG_ZMK_CUSTOM_CONFIG
+    threshold = (int32_t)zmk_custom_config_scroll_div_value();
+    data->effective_threshold = 0;
+#endif
+
     if (data->effective_threshold > 0) {
         return data->effective_threshold;
     }
-
-    int32_t threshold = config->threshold;
 
     if (threshold <= 0) {
         LOG_WRN("%s: invalid threshold %d, clamping to 1", dev->name, threshold);
@@ -50,6 +61,18 @@ static int xy_clipper_handle_event(
     int32_t threshold = xy_clipper_get_threshold(dev, data, config);
     bool invert_x = config->invert_x != 0;
     bool invert_y = config->invert_y != 0;
+#ifdef CONFIG_ZMK_CUSTOM_CONFIG
+    invert_x = zmk_custom_config_scroll_h_rev();
+    invert_y = zmk_custom_config_scroll_v_rev();
+#endif
+    if (threshold != data->last_threshold || invert_x != data->last_invert_x ||
+        invert_y != data->last_invert_y) {
+        LOG_INF("xy_clipper cfg threshold=%d invert_x=%d invert_y=%d",
+                threshold, invert_x, invert_y);
+        data->last_threshold = threshold;
+        data->last_invert_x = invert_x;
+        data->last_invert_y = invert_y;
+    }
 
     switch (event->type) {
     case INPUT_EV_REL:
@@ -102,6 +125,9 @@ static struct zmk_input_processor_driver_api xy_clipper_driver_api = {
       .x = 0, \
       .y = 0, \
       .effective_threshold = 0, \
+      .last_threshold = INT32_MIN, \
+      .last_invert_x = -1, \
+      .last_invert_y = -1, \
   }; \
   static const struct xy_clipper_config xy_clipper_config_##n = { \
       .threshold = DT_INST_PROP(n, threshold), \
