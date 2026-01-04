@@ -115,7 +115,7 @@ static int xy_clipper_handle_event(
             return ZMK_INPUT_PROC_CONTINUE;
         }
         LOG_DBG("xy_clipper stop (no trigger)");
-        return ZMK_INPUT_PROC_STOP; // event->value has already been set to 0.
+        return ZMK_INPUT_PROC_CONTINUE; // Let sync propagate even without output.
 
     default:
         return ZMK_INPUT_PROC_CONTINUE;
